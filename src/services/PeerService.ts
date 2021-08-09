@@ -28,37 +28,14 @@ export class PeerService {
     );
   }
 
-  showRemoteVideo(peer: Peer.MediaConnection) {
-    const userMediaStream =
-      navigator.getUserMedia ||
-      navigator.webkitGetUserMedia ||
-      navigator.mozGetUserMedia;
-
-    userMediaStream(
-      { video: true, audio: false },
-      (stream) => {
-        peer.answer(stream);
-        if (this.remoteRef.current) {
-          this.remoteRef.current.srcObject = stream;
-        }
-      },
-      (_err) => {}
-    );
+  showRemoteVideo(stream: MediaStream) {
+    if (this.remoteRef.current) {
+      this.remoteRef.current.srcObject = stream;
+    }
   }
 
   // Listen to call
-  listenToCall() {
-    this.peerInstance.on('call', (peer) => {
-      const confirmed = window.confirm(`Getting call from ${peer.peer}`);
-
-      if (confirmed) {
-        this.showRemoteVideo(peer);
-      }
-    });
-  }
-
-  // Call To Other User
-  callUser(userId: string) {
+  listenToCall(caller: Peer.MediaConnection) {
     const userMediaStream =
       navigator.getUserMedia ||
       navigator.webkitGetUserMedia ||
@@ -67,7 +44,38 @@ export class PeerService {
     userMediaStream(
       { audio: false, video: true },
       (stream) => {
-        this.peerInstance.call(userId, stream);
+        // eslint-disable-next-line no-restricted-globals
+        const confirmed = confirm(`Getting call from ${caller.peer}`);
+
+        if (confirmed) {
+          caller.answer(stream);
+          caller.on('stream', (remoteStream) => {
+            this.showRemoteVideo(remoteStream);
+          });
+        }
+      },
+      (_err) => {
+        alert('Failed');
+      }
+    );
+  }
+
+  // Call To Other User
+  callUser(userId: string) {
+    console.log('calling', userId);
+    const userMediaStream =
+      navigator.getUserMedia ||
+      navigator.webkitGetUserMedia ||
+      navigator.mozGetUserMedia;
+
+    userMediaStream(
+      { audio: false, video: true },
+      (stream) => {
+        const call = this.peerInstance.call(userId, stream);
+
+        call.on('stream', (remoteStream) => {
+          this.showRemoteVideo(remoteStream);
+        });
       },
       (_err) => {}
     );

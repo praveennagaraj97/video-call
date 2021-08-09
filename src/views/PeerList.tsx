@@ -18,19 +18,29 @@ export const PeerList: FC = () => {
   //   Init
   useEffect(() => {
     const peerInstance = new Peer();
+
     // Once Web connect to server will get an Id/ we can connect to server with our own ID
     peerInstance.on('open', (id) => {
+      // Instance Created
       setInstanceLoading(false);
+      // Set Current User
       setMyInstanceId(id);
-      // By Default show UserVideo to the left
+
+      // Create an instance for peer video tags
       const peerService = new PeerService(
         peerInstance,
         myVideoRef,
         myFriendVideoRef
       );
+
+      // By Default show UserVideo to the left
       peerService.showMyVideo();
-      peerService.listenToCall();
+
       setPeerService(peerService);
+      // Listen to calls from remote
+      peerInstance.on('call', (caller) => {
+        peerService?.listenToCall(caller);
+      });
     });
   }, []);
 
